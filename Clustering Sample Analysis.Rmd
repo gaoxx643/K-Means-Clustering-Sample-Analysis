@@ -1,0 +1,83 @@
+---
+title: "K-Means Clustering Sample Analysis"
+author: "Ziyao Gao"
+date: "7/7/2017"
+output: html_document
+---
+K-Means is a clustering approach that belogs to the class of unsupervised statistical learning methods. In marketing, K-Means is often used to create market/customer/product segments.
+
+The general idea of a clustering algorithm is to partition a given dataset into distinct, exclusive clusters so that the data points in each group are quite similar to each other.
+
+One of the first steps in building a K-Means clustering work is to define the number of clusters to work with. Subsequently, the algorithm assigns each individual data point to one of the clusters in a random fashion. The underlying idea of the algorithm is that a good cluster is the one which contains the smallest possible within-cluster variation of all observations in relation to each other. The most common way to define this variation is using the squared Euclidean distance.
+
+Generally, the way K-Means algorithms work is via an iterative refinement process:
+
+1. Each data point is randomly assigned to a cluster (number of clusters is given before hand).
+2. Each cluster’s centroid (mean within cluster) is calculated.
+3. Each data point is assigned to its nearest centroid (iteratively to minimise the within-cluster variation) until no major differences are found.
+
+Let’s have a look at an example in R using the Chatterjee-Price Attitude Data from the library(datasets) package. The dataset is a survey of clerical employees of a large financial organization. The data are aggregated from questionnaires of approximately 35 employees for each of 30 (randomly selected) departments. The numbers give the percent proportion of favourable responses to seven questions in each department.
+
+```{r}
+# load libraries needed
+library(datasets)
+# Inspect data structure
+str(attitude)
+head(attitude)
+# Summarize data
+summary(attitude)
+```
+
+When performing clustering, some important concepts must be tackled. One of them is how to deal with data that contains multiple (or more than 2) variables. In such cases, one option would be to perform Principal Component Analysis (PCA) and then plot the first two vectors and maybe additionally apply K-Means. Other checks to be made are whether the data in hand should be standardized, whether the number of clusters obtained are truly representing the underlying pattern found in the data, whether there could be other clustering algorithms or parameters to be taken, etc.
+
+In light of the example, we’ll take a subset of the attitude dataset and consider only two variables in our K-Means clustering exercise. So imagine that we would like to cluster the attitude dataset with the responses from all 30 departments when it comes to ‘privileges’ and ‘learning’ and we would like to understand whether there are commonalities among certain departments when it comes to these two variables.
+
+```{r}
+# subset the data
+data = attitude[, c(3,4)]
+# plot subset data
+plot(data, main = "% of favourable responses to Learning and Privilege", pch = 20, cex = 2)
+```
+
+Let’s use the kmeans function from R base stats package:
+```{r}
+# perform k-means with 2 clusters
+set.seed(7)
+km1 = kmeans(data, 2, nstart = 100)
+km1
+
+# plot clusters
+plot(data, col = (km1$cluster + 1), main = "K-Means result with 2 clusters", pch = 20, cex = 2)
+```
+
+In practice, there is no easy answer and it’s important to try different ways and numbers of clusters to decide which options is the most useful, applicable or interpretable solution.
+
+However, one solution often used to identifiy the optimal number of clusters is called the Elbow method and it involves observing a set of possible numbers of clusters relative to how they minimise the within-cluster sum of squares. In other words, the Elbow method examines the within-cluster dissimilarity as a function of the number of clusters.
+
+```{r}
+# explore the optimal number of clusters
+mydata <- data
+wss <- (nrow(mydata)-1)*sum(apply(mydata, 2, var))
+        for (i in 2:15) wss[i] <- sum(kmeans(mydata,
+                                             centers = i)$withinss)
+plot(1:15, wss, type = "b", xlab = "Number of Clusters",
+     ylab = "Within groups sum of squares",
+     main = "Exploring the Optimal Number of Clusters with Elbow Method",
+     pch = 20, cex = 2)
+```
+
+With the Elbow method, the solution criterion value (within groups sum of squares) will tend to decrease substantially with each successive increase in the number of clusters. Simplistically, an optimal number of clusters is identified once a “kink” in the line plot is observed. As you can grasp, identifying the point in which a “kink” exists is not a very objective approach and is very prone to heuristic processes.
+
+But from the example above, we can say that after 6 clusters the observed difference in the within-cluster dissimilarity is not substantial. 
+
+```{r}
+# Perform K-means with the optimal number of clusters identified from Elbow method
+set.seed(7)
+km2 = kmeans(data, 6, nstart = 100)
+# take a look the result of the clustering algorithm
+km2
+# plot the results
+plot(data, col = (km2$cluster + 1), main = "K-Means result with 6 clusters", pch = 20, cex = 2)
+```
+
+From the results above we can see that there is a relatively well defined set of groups of departments that are relatively distinct when it comes to answering favourably around Privileges and Learning in the survey. It is only natural to think the next steps from this sort of output. One could start to devise strategies to understand why certain departments rate these two different measures the way they do and what to do about it. 
